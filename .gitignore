@@ -5,7 +5,6 @@ target/
 *.iml
 *.iws
 *.jrtc
-*.java
 *.class
 *.info
 *.properties
