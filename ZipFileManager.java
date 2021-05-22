@@ -8,6 +8,7 @@ import java.io.InputStream;
 import java.io.OutputStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.zip.ZipEntry;
@@ -77,6 +78,26 @@ public class ZipFileManager {
         }
 
         return files;
+    }
+
+    public void extractAll(Path outputFolder) throws Exception {
+        if (!Files.isRegularFile(zipFile)) throw new WrongZipFileException();
+        if (!Files.isDirectory(outputFolder)) Files.createDirectories(outputFolder);
+        try (ZipInputStream in = new ZipInputStream(Files.newInputStream(zipFile))) {
+            ZipEntry zipEntry;
+            while ((zipEntry = in.getNextEntry()) != null) {
+                Path fullPath = outputFolder.resolve(zipEntry.getName());
+                if ( zipEntry.isDirectory()) {
+                    if (Files.notExists(fullPath)) Files.createDirectories(fullPath);
+                } else if(fullPath.getParent()!=null && Files.notExists(fullPath)){
+                    Files.createDirectories(fullPath.getParent());
+                    Files.createFile(fullPath);
+                    try (OutputStream out = Files.newOutputStream(fullPath)){
+                        copyData(in,out);
+                    }
+                }
+            }
+        }
     }
 
     private void addNewZipEntry(ZipOutputStream zipOutputStream, Path filePath, Path fileName) throws Exception {
