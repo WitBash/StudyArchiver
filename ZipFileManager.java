@@ -128,6 +128,44 @@ public class ZipFileManager {
         Files.move(tempZipFile, zipFile, StandardCopyOption.REPLACE_EXISTING);
     }
 
+    public void addFile(Path absolutePath) throws Exception {
+        addFiles(Collections.singletonList(absolutePath));
+    }
+
+    public void addFiles(List<Path> absolutePathList) throws Exception {
+        // Проверяем существует ли zip файл
+        if (!Files.isRegularFile(zipFile)) {
+            throw new WrongZipFileException();
+        }
+
+        // Создаем временный файл
+        Path tempZipFile = Files.createTempFile(null, null);
+        List<String> pathList = new ArrayList<>();
+        try (ZipOutputStream zipOutputStream = new ZipOutputStream(Files.newOutputStream(tempZipFile))) {
+            try (ZipInputStream zipInputStream = new ZipInputStream(Files.newInputStream(zipFile))) {
+
+                ZipEntry zipEntry = zipInputStream.getNextEntry();
+                while (zipEntry != null) {
+                    zipOutputStream.putNextEntry(new ZipEntry(zipEntry.getName()));
+                    copyData(zipInputStream, zipOutputStream);
+                    pathList.add(zipEntry.getName());
+                    zipOutputStream.closeEntry();
+                    zipInputStream.closeEntry();
+                    zipEntry = zipInputStream.getNextEntry();
+                }
+                for (Path p : absolutePathList) {
+                    if (!Files.notExists(p) && Files.isRegularFile(p)) {
+                        if (!pathList.contains(p.getFileName().toString())) {
+                            addNewZipEntry(zipOutputStream, p.getParent(), p);
+                        } else ConsoleHelper.writeMessage("Такой файл уже существует в архиве");
+                    } else throw new PathIsNotFoundException();
+
+                }
+            }
+        }
+        Files.move(tempZipFile, zipFile, StandardCopyOption.REPLACE_EXISTING);
+    }
+
     public List<FileProperties> getFilesList() throws Exception {
         // Проверяем существует ли zip файл
         if (!Files.isRegularFile(zipFile)) {
